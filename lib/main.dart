@@ -29,7 +29,33 @@ class MyHomePage extends StatelessWidget {
         appBar: AppBar(
           title: Text(title),
         ),
-        body: Center(child: PlaybackButton()));
+        body: DashcastApp());
+  }
+}
+
+class DashcastApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        Flexible(flex: 8, child: Placeholder()),
+        Flexible(flex: 2, child: AudioControl()),
+      ],
+    );
+  }
+}
+
+class AudioControl extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return PlaybackButtons();
+  }
+}
+
+class PlaybackButtons extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return PlaybackButton();
   }
 }
 
@@ -44,44 +70,69 @@ class _PlaybackButtonState extends State<PlaybackButton> {
   final _url =
       "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Discovery%20Hit.mp3";
 
-  FlutterSound flutterSound = new FlutterSound();
+  FlutterSound _flutterSound = new FlutterSound();
 
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-  }
+  double _playposition = 0;
+  Stream<PlayStatus> _playSubscription;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-        icon:Icon(
-          _isPlaying ? Icons.pause : Icons.play_arrow
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: <Widget>[
+        Slider(
+          onChanged: (p) {},
+          value: _playposition,
         ),
-        onPressed: () {
-          if (!_isPlaying)
-            _play();
-          else
-            _pause();
-          setState(() => _isPlaying = !_isPlaying);
-        });
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            IconButton(
+              icon: Icon(Icons.fast_rewind),
+              onPressed: () {},
+            ),
+            IconButton(
+                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                onPressed: () {
+                  if (!_isPlaying)
+                    _play();
+                  else
+                    _pause();
+                  setState(() => _isPlaying = !_isPlaying);
+                }),
+            IconButton(
+              icon: Icon(Icons.fast_forward),
+              onPressed: () {},
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
-  _play() async{
+  _play() async {
 //    Directory tempDir = await getTemporaryDirectory();
 //    File fin = await File ('${tempDir.path}/flutter_sound-tmp.aac');
-    String result = await flutterSound.startPlayer(_url);
-
+    String result = await _flutterSound.startPlayer(_url);
+    _playSubscription = _flutterSound.onPlayerStateChanged
+      ..listen((ps) {
+        if (ps != null) {
+          print("${ps.currentPosition} << ${ps.duration}");
+          setState(() {
+            _playposition = ps.currentPosition / ps.duration;
+          });
+        }
+      });
   }
 
-  _pause() async{
-    String result = await flutterSound.pausePlayer();
+  _pause() async {
+    String result = await _flutterSound.pausePlayer();
   }
 
   @override
   void dispose() {
     // TODO: implement dispose
     super.dispose();
-    flutterSound.stopPlayer();
+    _flutterSound.stopPlayer();
   }
 }
